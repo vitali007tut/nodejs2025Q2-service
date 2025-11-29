@@ -2,16 +2,24 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Track } from './entities/track.entity';
 import { CreateTrackDto } from './dto/create-track.dto';
 import { UpdateTrackDto } from './dto/update-track.dto';
 import { validate as uuidValidate } from 'uuid';
+import { FavoritesService } from '../favorites/favorites.service';
 
 @Injectable()
 export class TracksService {
   private tracks: Track[] = [];
+
+  constructor(
+    @Inject(forwardRef(() => FavoritesService))
+    private readonly favoritesService: FavoritesService,
+  ) {}
 
   findAll(): Track[] {
     return this.tracks;
@@ -71,6 +79,9 @@ export class TracksService {
     if (trackIndex === -1) {
       throw new NotFoundException('Track was not found');
     }
+
+    // Remove from favorites
+    this.favoritesService.removeTrackReference(id);
 
     this.tracks.splice(trackIndex, 1);
   }
