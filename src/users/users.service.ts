@@ -1,0 +1,91 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { User } from './entities/user.entity';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+import { validate as uuidValidate } from 'uuid';
+
+@Injectable()
+export class UsersService {
+  private users: User[] = [];
+
+  findAll(): Omit<User, 'password'>[] {
+    return this.users.map(({ password, ...user }) => user);
+  }
+
+  findOne(id: string): Omit<User, 'password'> {
+    if (!uuidValidate(id)) {
+      throw new BadRequestException('userId is invalid (not uuid)');
+    }
+
+    const user = this.users.find((u) => u.id === id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
+  create(createUserDto: CreateUserDto): Omit<User, 'password'> {
+    const now = Date.now();
+    const newUser: User = {
+      id: randomUUID(),
+      login: createUserDto.login,
+      password: createUserDto.password,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.users.push(newUser);
+
+    const { password, ...userWithoutPassword } = newUser;
+    return userWithoutPassword;
+  }
+
+  updatePassword(
+    id: string,
+    updatePasswordDto: UpdatePasswordDto,
+  ): Omit<User, 'password'> {
+    if (!uuidValidate(id)) {
+      throw new BadRequestException('userId is invalid (not uuid)');
+    }
+
+    const userIndex = this.users.findIndex((u) => u.id === id);
+    if (userIndex === -1) {
+      throw new NotFoundException('User not found');
+    }
+
+    const user = this.users[userIndex];
+    if (user.password !== updatePasswordDto.oldPassword) {
+      throw new ForbiddenException('oldPassword is wrong');
+    }
+
+    user.password = updatePasswordDto.newPassword;
+    user.version += 1;
+    user.updatedAt = Date.now();
+
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
+  remove(id: string): void {
+    if (!uuidValidate(id)) {
+      throw new BadRequestException('userId is invalid (not uuid)');
+    }
+
+    const userIndex = this.users.findIndex((u) => u.id === id);
+    if (userIndex === -1) {
+      throw new NotFoundException('User not found');
+    }
+
+    this.users.splice(userIndex, 1);
+  }
+}
