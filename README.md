@@ -4,6 +4,8 @@
 
 - Git - [Download & Install Git](https://git-scm.com/downloads).
 - Node.js - [Download & Install Node.js](https://nodejs.org/en/download/) and the npm package manager.
+- Docker - [Download & Install Docker](https://www.docker.com/get-started)
+- Docker Hub account (for pushing images)
 
 ## Downloading
 
@@ -17,7 +19,62 @@ git clone {repository URL}
 npm install
 ```
 
-## Running application
+## Running application with Docker
+
+### Development mode (with hot reload)
+
+1. Copy environment variables:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit `.env` file if needed.
+
+2. Start containers:
+
+   ```bash
+   docker-compose up app-dev
+   ```
+
+   Application will restart automatically when you change files in `src/` folder.
+
+### Production mode
+
+1. Copy environment variables:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit `.env` file if needed.
+
+2. Build and start containers:
+   ```bash
+   docker-compose up --build app
+   ```
+
+### Building and pushing images
+
+1. Build images:
+
+   ```bash
+   docker-compose build
+   ```
+
+2. Scan for vulnerabilities:
+
+   ```bash
+   npm run docker:scan
+   ```
+
+3. Tag and push to Docker Hub:
+   ```bash
+   docker tag home-library-app <your-dockerhub-username>/home-library-app:latest
+   docker push <your-dockerhub-username>/home-library-app:latest
+   ```
+
+## Running application locally (without Docker)
 
 ```
 npm start
