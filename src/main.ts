@@ -18,7 +18,6 @@ async function bootstrap() {
     }),
   );
 
-  // Load OpenAPI spec from file
   const apiYamlPath = join(__dirname, '../doc/api.yaml');
   const apiYamlContent = readFileSync(apiYamlPath, 'utf8');
   const apiDocument = parse(apiYamlContent);

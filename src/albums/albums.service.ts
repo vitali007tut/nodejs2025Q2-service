@@ -81,10 +81,7 @@ export class AlbumsService {
       throw new NotFoundException('Album was not found');
     }
 
-    // Update tracks: set albumId to null for tracks with this album
     this.tracksService.removeAlbumReference(id);
-
-    // Remove from favorites
     this.favoritesService.removeAlbumReference(id);
 
     this.albums.splice(albumIndex, 1);

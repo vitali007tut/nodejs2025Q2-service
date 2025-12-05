@@ -80,7 +80,6 @@ export class TracksService {
       throw new NotFoundException('Track was not found');
     }
 
-    // Remove from favorites
     this.favoritesService.removeTrackReference(id);
 
     this.tracks.splice(trackIndex, 1);

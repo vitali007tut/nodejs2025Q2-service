@@ -82,13 +82,8 @@ export class ArtistsService {
       throw new NotFoundException('Artist was not found');
     }
 
-    // Update tracks: set artistId to null for tracks with this artist
     this.tracksService.removeArtistReference(id);
-
-    // Update albums: set artistId to null for albums with this artist
     this.albumsService.removeArtistReference(id);
-
-    // Remove from favorites
     this.favoritesService.removeArtistReference(id);
 
     this.artists.splice(artistIndex, 1);
