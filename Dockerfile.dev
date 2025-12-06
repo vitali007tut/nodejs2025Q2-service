@@ -10,5 +10,5 @@ COPY . .
 
 EXPOSE 4000
 
-CMD ["npm", "run", "start:dev"]
+CMD ["sh", "-c", "npm run migration:run || true && npm run start:dev"]
 

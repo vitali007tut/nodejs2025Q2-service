@@ -18,7 +18,10 @@ async function bootstrap() {
     }),
   );
 
-  const apiYamlPath = join(__dirname, '../doc/api.yaml');
+  const apiYamlPath =
+    process.env.NODE_ENV === 'production'
+      ? join(__dirname, '../doc/api.yaml')
+      : join(process.cwd(), 'doc/api.yaml');
   const apiYamlContent = readFileSync(apiYamlPath, 'utf8');
   const apiDocument = parse(apiYamlContent);
 

@@ -40,7 +40,7 @@ export class TracksController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string) {
-    this.tracksService.remove(id);
+  async remove(@Param('id') id: string) {
+    await this.tracksService.remove(id);
   }
 }

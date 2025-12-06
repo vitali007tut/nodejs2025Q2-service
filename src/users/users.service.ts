@@ -5,87 +5,117 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { validate as uuidValidate } from 'uuid';
 
+type UserResponse = Pick<
+  User,
+  'id' | 'login' | 'version' | 'createdAt' | 'updatedAt'
+>;
+
 @Injectable()
 export class UsersService {
-  private users: User[] = [];
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
 
-  findAll(): Omit<User, 'password'>[] {
-    return this.users.map(({ password, ...user }) => user);
+  async findAll(): Promise<UserResponse[]> {
+    const users = await this.userRepository.find();
+    return users.map(
+      ({
+        password,
+        setTimestampsOnInsert,
+        setTimestampsOnUpdate,
+        ...user
+      }) => ({
+        ...user,
+        createdAt: Number(user.createdAt),
+        updatedAt: Number(user.updatedAt),
+      }),
+    );
   }
 
-  findOne(id: string): Omit<User, 'password'> {
+  async findOne(id: string): Promise<UserResponse> {
     if (!uuidValidate(id)) {
       throw new BadRequestException('userId is invalid (not uuid)');
     }
 
-    const user = this.users.find((u) => u.id === id);
+    const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    const {
+      password,
+      setTimestampsOnInsert,
+      setTimestampsOnUpdate,
+      ...userWithoutPassword
+    } = user;
+    return {
+      ...userWithoutPassword,
+      createdAt: Number(userWithoutPassword.createdAt),
+      updatedAt: Number(userWithoutPassword.updatedAt),
+    };
   }
 
-  create(createUserDto: CreateUserDto): Omit<User, 'password'> {
-    const now = Date.now();
-    const newUser: User = {
-      id: randomUUID(),
+  async create(createUserDto: CreateUserDto): Promise<UserResponse> {
+    const newUser = this.userRepository.create({
       login: createUserDto.login,
       password: createUserDto.password,
-      version: 1,
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
 
-    this.users.push(newUser);
-
-    const { password, ...userWithoutPassword } = newUser;
+    const savedUser = await this.userRepository.save(newUser);
+    const {
+      password,
+      setTimestampsOnInsert,
+      setTimestampsOnUpdate,
+      ...userWithoutPassword
+    } = savedUser;
     return userWithoutPassword;
   }
 
-  updatePassword(
+  async updatePassword(
     id: string,
     updatePasswordDto: UpdatePasswordDto,
-  ): Omit<User, 'password'> {
+  ): Promise<UserResponse> {
     if (!uuidValidate(id)) {
       throw new BadRequestException('userId is invalid (not uuid)');
     }
 
-    const userIndex = this.users.findIndex((u) => u.id === id);
-    if (userIndex === -1) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    const user = this.users[userIndex];
     if (user.password !== updatePasswordDto.oldPassword) {
       throw new ForbiddenException('oldPassword is wrong');
     }
 
     user.password = updatePasswordDto.newPassword;
-    user.version += 1;
-    user.updatedAt = Date.now();
+    const updatedUser = await this.userRepository.save(user);
 
-    const { password, ...userWithoutPassword } = user;
+    const {
+      password,
+      setTimestampsOnInsert,
+      setTimestampsOnUpdate,
+      ...userWithoutPassword
+    } = updatedUser;
     return userWithoutPassword;
   }
 
-  remove(id: string): void {
+  async remove(id: string): Promise<void> {
     if (!uuidValidate(id)) {
       throw new BadRequestException('userId is invalid (not uuid)');
     }
 
-    const userIndex = this.users.findIndex((u) => u.id === id);
-    if (userIndex === -1) {
+    const result = await this.userRepository.delete(id);
+    if (result.affected === 0) {
       throw new NotFoundException('User not found');
     }
-
-    this.users.splice(userIndex, 1);
   }
 }

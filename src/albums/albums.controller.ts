@@ -40,7 +40,7 @@ export class AlbumsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string) {
-    this.albumsService.remove(id);
+  async remove(@Param('id') id: string) {
+    await this.albumsService.remove(id);
   }
 }

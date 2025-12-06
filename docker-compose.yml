@@ -73,8 +73,8 @@ services:
       - ./tsconfig.json:/app/tsconfig.json
       - ./tsconfig.build.json:/app/tsconfig.build.json
       - ./nest-cli.json:/app/nest-cli.json
+      - ./typeorm.config.ts:/app/typeorm.config.ts
       - /app/node_modules
-    command: npm run start:dev
 
 volumes:
   postgres_data:
