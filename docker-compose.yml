@@ -67,6 +67,7 @@ services:
       - home-library-network
     volumes:
       - ./src:/app/src
+      - ./doc:/app/doc
       - ./package.json:/app/package.json
       - ./package-lock.json:/app/package-lock.json
       - ./tsconfig.json:/app/tsconfig.json

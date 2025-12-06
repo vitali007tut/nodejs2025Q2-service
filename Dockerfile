@@ -19,6 +19,7 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/doc ./doc
 
 EXPOSE 4000
 

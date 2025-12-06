@@ -1,129 +1,172 @@
 # Home Library Service
 
+REST API для управления домашней музыкальной библиотекой. Позволяет управлять пользователями, артистами, альбомами, треками и избранным.
+
 ## Prerequisites
 
-- Git - [Download & Install Git](https://git-scm.com/downloads).
-- Node.js - [Download & Install Node.js](https://nodejs.org/en/download/) and the npm package manager.
+- Git - [Download & Install Git](https://git-scm.com/downloads)
+- Node.js (>=22.14.0) - [Download & Install Node.js](https://nodejs.org/en/download/)
 - Docker - [Download & Install Docker](https://www.docker.com/get-started)
-- Docker Hub account (for pushing images)
 
-## Downloading
+## Quick Start
 
-```
+### 1. Clone repository
+
+```bash
 git clone {repository URL}
+cd nodejs2025Q2-service
 ```
 
-## Installing NPM modules
+### 2. Setup environment variables
 
+```bash
+cp .env.example .env
 ```
+
+### 3. Install dependencies
+
+```bash
 npm install
 ```
 
-## Running application with Docker
+### 4. Run application
 
-### Development mode (with hot reload)
+#### Option A: With Docker (recommended)
 
-1. Copy environment variables:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   Edit `.env` file if needed.
-
-2. Start containers:
-
-   ```bash
-   docker-compose up app-dev
-   ```
-
-   Application will restart automatically when you change files in `src/` folder.
-
-### Production mode
-
-1. Copy environment variables:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   Edit `.env` file if needed.
-
-2. Build and start containers:
-   ```bash
-   docker-compose up --build app
-   ```
-
-### Building and pushing images
-
-1. Build images:
-
-   ```bash
-   docker-compose build
-   ```
-
-2. Scan for vulnerabilities:
-
-   ```bash
-   npm run docker:scan
-   ```
-
-3. Tag and push to Docker Hub:
-   ```bash
-   docker tag home-library-app <your-dockerhub-username>/home-library-app:latest
-   docker push <your-dockerhub-username>/home-library-app:latest
-   ```
-
-## Running application locally (without Docker)
-
+```bash
+docker-compose up --build -d postgres app
 ```
+
+#### Option B: Without Docker (local)
+
+```bash
 npm start
 ```
 
-After starting the app on port (4000 as default) you can open
-in your browser OpenAPI documentation by typing http://localhost:4000/doc/.
-For more information about OpenAPI/Swagger please visit https://swagger.io/.
+### 5. Verify application is running
+
+```bash
+curl http://localhost:4000/user
+# Expected: []
+```
+
+Or open in browser: http://localhost:4000/doc
+
+## API Endpoints
+
+| Resource         | Endpoint           | Methods                |
+| ---------------- | ------------------ | ---------------------- |
+| Users            | `/user`            | GET, POST, PUT, DELETE |
+| Artists          | `/artist`          | GET, POST, PUT, DELETE |
+| Albums           | `/album`           | GET, POST, PUT, DELETE |
+| Tracks           | `/track`           | GET, POST, PUT, DELETE |
+| Favorites        | `/favs`            | GET                    |
+| Favorite Artists | `/favs/artist/:id` | POST, DELETE           |
+| Favorite Albums  | `/favs/album/:id`  | POST, DELETE           |
+| Favorite Tracks  | `/favs/track/:id`  | POST, DELETE           |
+
+## Running with Docker
+
+### Production mode
+
+```bash
+# Start PostgreSQL and application
+docker-compose up --build -d postgres app
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs app
+
+# Stop containers
+docker-compose down
+```
+
+### Development mode (with hot reload)
+
+```bash
+# Start with hot reload (changes in src/ auto-restart app)
+docker-compose up -d postgres app-dev
+
+# Stop
+docker-compose down
+```
+
+## Running locally (without Docker)
+
+```bash
+# Install dependencies
+npm install
+
+# Start application
+npm start
+
+# Or with hot reload
+npm run start:dev
+```
 
 ## Testing
 
-After application running open new terminal and enter:
+**Important:** Application must be running before tests!
 
-To run all tests without authorization
-
-```
+```bash
+# Run all tests
 npm run test
-```
 
-To run only one of all test suites
+# Run specific test suite
+npm run test -- test/users.e2e.spec.ts
 
-```
-npm run test -- <path to suite>
-```
-
-To run all test with authorization
-
-```
+# Run tests with authorization
 npm run test:auth
 ```
 
-To run only specific test suite with authorization
+## Development
 
-```
-npm run test:auth -- <path to suite>
-```
+### Linting
 
-### Auto-fix and format
-
-```
+```bash
 npm run lint
 ```
 
-```
+### Formatting
+
+```bash
 npm run format
 ```
 
-### Debugging in VSCode
+### Build
 
-Press <kbd>F5</kbd> to debug.
+```bash
+npm run build
+```
 
-For more information, visit: https://code.visualstudio.com/docs/editor/debugging
+## Environment Variables
+
+| Variable                  | Default      | Description              |
+| ------------------------- | ------------ | ------------------------ |
+| PORT                      | 4000         | Application port         |
+| CRYPT_SALT                | 10           | Bcrypt salt rounds       |
+| JWT_SECRET_KEY            | -            | JWT access token secret  |
+| JWT_SECRET_REFRESH_KEY    | -            | JWT refresh token secret |
+| TOKEN_EXPIRE_TIME         | 1h           | Access token expiration  |
+| TOKEN_REFRESH_EXPIRE_TIME | 24h          | Refresh token expiration |
+| POSTGRES_USER             | postgres     | PostgreSQL username      |
+| POSTGRES_PASSWORD         | postgres     | PostgreSQL password      |
+| POSTGRES_DB               | home_library | PostgreSQL database name |
+| POSTGRES_PORT             | 5432         | PostgreSQL port          |
+
+## Docker Architecture
+
+- `postgres` - PostgreSQL 16 database
+- `app` - Production application (multi-stage build)
+- `app-dev` - Development application with hot reload
+
+### Volumes
+
+- `postgres_data` - Database files
+- `postgres_logs` - Database logs
+
+### Network
+
+- `home-library-network` - Bridge network for container communication
