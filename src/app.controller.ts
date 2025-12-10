@@ -6,6 +6,11 @@ import { AppService } from './app.service';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
+  @Get('test-error')
+  testError(): void {
+    throw new Error('Test uncaught exception');
+  }
+
   @Get()
   getHello(@Res() res: Response): void {
     const port = parseInt(process.env.PORT || '4000', 10);

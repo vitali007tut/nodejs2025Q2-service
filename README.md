@@ -255,6 +255,235 @@ npm run build
 | POSTGRES_PASSWORD         | postgres     | PostgreSQL password                              |
 | POSTGRES_DB               | home_library | PostgreSQL database name                         |
 | POSTGRES_PORT             | 5432         | PostgreSQL port                                  |
+| LOG_LEVEL                 | log           | Logging level (error, warn, log, debug, verbose) |
+
+## Logging
+
+The application uses a custom `LoggingService` for logging all requests, responses, and errors. Logs are written to `stdout` and can be viewed through Docker logs.
+
+### Viewing Logs
+
+#### Real-time logs (follow mode)
+
+```bash
+# View all application logs in real-time
+docker-compose logs -f app-dev
+
+# View only last 100 lines and follow
+docker-compose logs --tail=100 -f app-dev
+```
+
+#### View recent logs
+
+```bash
+# Last 50 lines
+docker-compose logs --tail=50 app-dev
+
+# Last 100 lines
+docker-compose logs --tail=100 app-dev
+
+# All logs
+docker-compose logs app-dev
+```
+
+### What Gets Logged
+
+#### 1. Incoming Requests
+Every incoming request is logged with:
+- HTTP method (GET, POST, PUT, DELETE)
+- URL path
+- Query parameters (if present)
+- Request body (if present, passwords are masked as `***`)
+
+**Example log:**
+```
+[LoggingService] Incoming request: GET /user?page=1 | Query: {"page":"1"} | Body: {}
+[LoggingService] Incoming request: POST /user | Body: {"login":"testuser","password":"***"}
+```
+
+#### 2. Responses
+Every response is logged with:
+- HTTP method and URL
+- Status code
+- Response time in milliseconds
+
+**Example log:**
+```
+[LoggingService] GET /user - 200 - 15ms
+[LoggingService] POST /user - 201 - 22ms
+```
+
+#### 3. Errors
+All errors are logged with:
+- HTTP method and URL
+- Status code
+- Error message
+- Stack trace (for 500 errors)
+
+**Example logs:**
+```
+[LoggingService] GET /user/invalid-uuid - 400 - userId is invalid (not uuid)
+[LoggingService] GET /test-error - 500 - Test uncaught exception
+```
+
+### Testing Logging
+
+#### Test request logging
+
+```bash
+# 1. Start application
+docker-compose up -d app-dev
+
+# 2. Make a request with query parameters
+curl "http://localhost:4000/user?page=1&limit=10"
+
+# 3. Check logs
+docker-compose logs --tail=20 app-dev | grep "Incoming request"
+# Expected: Incoming request: GET /user?page=1&limit=10 | Query: {"page":"1","limit":"10"}
+```
+
+#### Test request body logging
+
+```bash
+# 1. Make a POST request
+curl -X POST http://localhost:4000/user \
+  -H "Content-Type: application/json" \
+  -d '{"login":"testuser","password":"secret123"}'
+
+# 2. Check logs (password should be masked)
+docker-compose logs --tail=20 app-dev | grep "Incoming request"
+# Expected: Incoming request: POST /user | Body: {"login":"testuser","password":"***"}
+```
+
+#### Test error logging
+
+```bash
+# 1. Make a request that causes an error
+curl http://localhost:4000/user/invalid-uuid
+
+# 2. Check error logs
+docker-compose logs --tail=20 app-dev | grep -E "(ERROR|WARN)"
+# Expected: Error logs with status code and message
+```
+
+#### Test uncaught exception handler
+
+```bash
+# 1. Test uncaught exception endpoint (if available)
+curl http://localhost:4000/test-error
+
+# 2. Check logs for uncaught exception
+docker-compose logs --tail=20 app-dev | grep -E "(Uncaught|500)"
+```
+
+### Log Levels
+
+The logging level can be controlled via `LOG_LEVEL` environment variable:
+
+| Level   | Value | Description                                    |
+| ------- | ----- | ---------------------------------------------- |
+| error   | 0     | Only errors                                    |
+| warn    | 1     | Errors and warnings                            |
+| log     | 2     | Errors, warnings, and info (default)          |
+| debug   | 3     | All above + debug messages                     |
+| verbose | 4     | All messages including verbose                |
+
+**Set log level:**
+
+```bash
+# In .env file
+LOG_LEVEL=debug
+
+# Or when running locally
+LOG_LEVEL=debug npm run start:dev
+```
+
+**Example with different log levels:**
+
+```bash
+# Set to 'warn' - only errors and warnings will be logged
+LOG_LEVEL=warn docker-compose up -d app-dev
+
+# Set to 'debug' - all logs including debug messages
+LOG_LEVEL=debug docker-compose up -d app-dev
+```
+
+### Filtering Logs
+
+#### Filter by log level
+
+```bash
+# Show only errors
+docker-compose logs app-dev | grep ERROR
+
+# Show only warnings
+docker-compose logs app-dev | grep WARN
+
+# Show all logs except debug
+docker-compose logs app-dev | grep -v DEBUG
+```
+
+#### Filter by endpoint
+
+```bash
+# Show logs for /user endpoint
+docker-compose logs app-dev | grep "/user"
+
+# Show logs for POST requests
+docker-compose logs app-dev | grep "POST"
+
+# Show logs for errors on specific endpoint
+docker-compose logs app-dev | grep "/user" | grep ERROR
+```
+
+#### Filter by time
+
+```bash
+# Show logs since specific time
+docker-compose logs --since 10m app-dev
+
+# Show logs from last hour
+docker-compose logs --since 1h app-dev
+```
+
+### Log Format
+
+Logs follow this format:
+```
+[Nest] <PID> - <Timestamp> <LEVEL> [Context] <Message>
+```
+
+**Example:**
+```
+[Nest] 62 - 12/10/2025, 12:40:14 PM LOG [LoggingService] Incoming request: GET /user?test=123 | Query: {"test":"123"}
+[Nest] 62 - 12/10/2025, 12:40:14 PM LOG [LoggingService] GET /user?test=123 - 200 - 14ms
+[Nest] 62 - 12/10/2025, 12:40:21 PM ERROR [LoggingService] POST /user - 500 - Internal server error
+```
+
+### Common Logging Commands
+
+```bash
+# Watch logs in real-time
+docker-compose logs -f app-dev
+
+# View last 50 lines
+docker-compose logs --tail=50 app-dev
+
+# View logs for specific time period
+docker-compose logs --since 30m app-dev
+
+# View logs and filter for errors
+docker-compose logs app-dev | grep ERROR
+
+# View logs and filter for specific endpoint
+docker-compose logs app-dev | grep "/user"
+
+# Save logs to file
+docker-compose logs app-dev > app-logs.txt
+
+# View logs from specific container
+docker logs home-library-app-dev
+```
 
 ## Verification & Troubleshooting
 
