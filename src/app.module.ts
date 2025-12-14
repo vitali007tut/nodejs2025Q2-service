@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -8,6 +8,7 @@ import { TracksModule } from './tracks/tracks.module';
 import { ArtistsModule } from './artists/artists.module';
 import { AlbumsModule } from './albums/albums.module';
 import { FavoritesModule } from './favorites/favorites.module';
+import { AuthModule } from './auth/auth.module';
 import { User } from './users/entities/user.entity';
 import { Artist } from './artists/entities/artist.entity';
 import { Album } from './albums/entities/album.entity';
@@ -20,6 +21,7 @@ import {
 import { LoggingService } from './common/logging/logging.service';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { GlobalAuthGuard } from './auth/guards/global-auth.guard';
 
 @Module({
   imports: [
@@ -43,6 +45,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
       migrations: ['dist/migrations/*.js'],
       migrationsRun: process.env.NODE_ENV === 'production',
     }),
+    AuthModule,
     UsersModule,
     TracksModule,
     ArtistsModule,
@@ -61,6 +64,14 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
     },
+    ...(process.env.NODE_ENV !== 'test'
+      ? [
+          {
+            provide: APP_GUARD,
+            useClass: GlobalAuthGuard,
+          },
+        ]
+      : []),
   ],
 })
 export class AppModule {}

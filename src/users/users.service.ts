@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
@@ -64,9 +65,16 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<UserResponse> {
+    // Hash password before saving
+    const saltRounds = parseInt(process.env.CRYPT_SALT || '10', 10);
+    const hashedPassword = await bcrypt.hash(
+      createUserDto.password,
+      saltRounds,
+    );
+
     const newUser = this.userRepository.create({
       login: createUserDto.login,
-      password: createUserDto.password,
+      password: hashedPassword,
     });
 
     const savedUser = await this.userRepository.save(newUser);
@@ -92,11 +100,23 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    if (user.password !== updatePasswordDto.oldPassword) {
+    // Compare hashed password
+    const isOldPasswordValid = await bcrypt.compare(
+      updatePasswordDto.oldPassword,
+      user.password,
+    );
+    if (!isOldPasswordValid) {
       throw new ForbiddenException('oldPassword is wrong');
     }
 
-    user.password = updatePasswordDto.newPassword;
+    // Hash new password
+    const saltRounds = parseInt(process.env.CRYPT_SALT || '10', 10);
+    const hashedNewPassword = await bcrypt.hash(
+      updatePasswordDto.newPassword,
+      saltRounds,
+    );
+
+    user.password = hashedNewPassword;
     const updatedUser = await this.userRepository.save(user);
 
     const {

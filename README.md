@@ -36,10 +36,21 @@ docker-compose logs -f app-dev
 
 **Important:** The application must be running before running tests!
 
+**Note about Authentication:** This application implements JWT authentication. All endpoints except `/auth/signup`, `/auth/login`, `/doc`, and `/` require authentication.
+
 ```bash
-# Run all tests
+# Run tests with authentication (RECOMMENDED)
+npm run test:auth
+
+# Run basic tests (will fail due to authentication requirements)
 npm run test
 ```
+
+**Test Modes:**
+
+- `npm run test:auth` - Runs tests with proper authentication headers (all tests should pass)
+- `npm run test` - Runs tests without authentication (will fail with 401 errors as expected)
+- `npm run test:refresh` - Runs refresh token tests
 
 ### 5. Stop services
 
@@ -78,6 +89,48 @@ taskkill //PID <PID> //F
 kill -9 <PID>
 ```
 
+## Authentication
+
+The application uses JWT (JSON Web Token) authentication. To access protected endpoints, you need to:
+
+1. **Sign up** a new user:
+
+```bash
+curl -X POST http://localhost:4000/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"login":"testuser","password":"testpass123"}'
+```
+
+2. **Login** to get access token:
+
+```bash
+curl -X POST http://localhost:4000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"login":"testuser","password":"testpass123"}'
+```
+
+3. **Use the token** in subsequent requests:
+
+```bash
+curl -X GET http://localhost:4000/user \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN_HERE"
+```
+
+### Public Endpoints (no authentication required):
+
+- `POST /auth/signup` - Create new user account
+- `POST /auth/login` - Login and get tokens
+- `GET /` - Home page
+- `GET /doc` - API documentation (Swagger)
+
+### Protected Endpoints (authentication required):
+
+- All `/user/*` endpoints
+- All `/artist/*` endpoints
+- All `/album/*` endpoints
+- All `/track/*` endpoints
+- All `/favs/*` endpoints
+
 ## Checking Logging Functionality
 
 To verify that the logging functionality is working properly:
@@ -92,15 +145,17 @@ docker-compose logs -f app-dev
 2. Make requests to the API to generate logs:
 
 ```bash
-# Test user endpoint
-curl http://localhost:4000/user
+# Test public endpoints (no auth required)
+curl http://localhost:4000/
+curl http://localhost:4000/doc
 
-# Create a new user
-curl -X POST http://localhost:4000/user \
+# Test authentication
+curl -X POST http://localhost:4000/auth/signup \
   -H "Content-Type: application/json" \
   -d '{"login":"testuser","password":"testpass123"}'
 
-# Test other endpoints as needed
+# Test protected endpoints (will return 401 without token)
+curl http://localhost:4000/user
 ```
 
 3. View the logs to confirm logging is working:
