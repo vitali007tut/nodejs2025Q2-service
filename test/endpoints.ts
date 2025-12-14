@@ -42,3 +42,12 @@ export const authRoutes = {
   login: '/auth/login',
   refresh: '/auth/refresh',
 };
+
+export const endpoints = {
+  users: usersRoutes,
+  artists: artistsRoutes,
+  albums: albumsRoutes,
+  tracks: tracksRoutes,
+  favorites: favoritesRoutes,
+  auth: authRoutes,
+};

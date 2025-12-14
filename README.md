@@ -109,17 +109,99 @@ curl -X POST http://localhost:4000/auth/login \
   -d '{"login":"testuser","password":"testpass123"}'
 ```
 
-3. **Use the token** in subsequent requests:
+Response will contain both tokens:
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+3. **Use the access token** in subsequent requests:
 
 ```bash
 curl -X GET http://localhost:4000/user \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN_HERE"
 ```
 
+## Refresh Token Testing
+
+The application supports refresh tokens for obtaining new access tokens without re-authentication.
+
+### Testing Refresh Token Functionality
+
+1. **Create user and login** (if not done already):
+
+```bash
+# Create user
+curl -X POST http://localhost:4000/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"login":"refreshtest","password":"testpass123"}'
+
+# Login and get tokens
+curl -X POST http://localhost:4000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"login":"refreshtest","password":"testpass123"}'
+```
+
+2. **Use refresh token to get new tokens** (Status: 200):
+
+```bash
+# Replace YOUR_REFRESH_TOKEN with the refreshToken from login response
+curl -X POST http://localhost:4000/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refreshToken":"YOUR_REFRESH_TOKEN"}'
+```
+
+Expected response:
+
+```json
+{
+  "accessToken": "new_access_token...",
+  "refreshToken": "new_refresh_token..."
+}
+```
+
+3. **Test error scenarios**:
+
+**Missing refreshToken (Status: 400):**
+
+```bash
+curl -X POST http://localhost:4000/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+**Empty refreshToken (Status: 400):**
+
+```bash
+curl -X POST http://localhost:4000/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refreshToken":""}'
+```
+
+**Invalid refreshToken (Status: 403):**
+
+```bash
+curl -X POST http://localhost:4000/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refreshToken":"invalid.token.here"}'
+```
+
+**Malformed refreshToken (Status: 403):**
+
+```bash
+curl -X POST http://localhost:4000/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refreshToken":"completely-invalid-token"}'
+```
+
 ### Public Endpoints (no authentication required):
 
 - `POST /auth/signup` - Create new user account
 - `POST /auth/login` - Login and get tokens
+- `POST /auth/refresh` - Refresh access token using refresh token
 - `GET /` - Home page
 - `GET /doc` - API documentation (Swagger)
 
